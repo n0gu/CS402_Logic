@@ -1,7 +1,10 @@
 import os, sys
 from cnf import to_cnf, _to_minisat
 
-'''______________
+'''
+CS402 Coursework 2 - Nonogram solver
+20140515 Sungyoon Jeong
+   ______________
   /             /|
  /             / |
 /_____________/  |
