@@ -52,12 +52,11 @@ def minlen(l):
 	return s
 
 # Wrapper function, just to make cumulating easier.
-def add(orig_clause, new_clause, op):
-	if orig_clause:
-		return (op, new_clause, orig_clause)
+def add(left, right, op):
+	if left and right:
+		return (op, left, right)
 	else:
-		return new_clause
-
+		return left or right
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
@@ -136,7 +135,7 @@ if __name__ == '__main__':
 			for i in xrange(len(col_clue)):
 				and_st = None
 				or_st = None
-				for j in xrange(col):
+				for j in xrange(row):
 					col_chunk_literal = 'C%d_%d_%d' % (c, i, j)
 					literal.append(col_chunk_literal)
 					if (j >= chunk_cumulative) and (j < chunk_cumulative + entropy):
@@ -166,16 +165,22 @@ if __name__ == '__main__':
 			row_st = None
 			col_st = None
 			for i in xrange(len(row_clues[r])):
+				if row_clues[r][i] == 0:
+					break
 				start = max(0, c - row_clues[r][i] + 1)
 				end = min(c, col - row_clues[r][i])
 				for j in xrange(start, end + 1):
 					row_st = add(row_st, 'R%d_%d_%d' % (r, i, j), '|')
 			for i in xrange(len(col_clues[c])):
+				if col_clues[c][i] == 0:
+					break
 				start = max(0, r - col_clues[c][i] + 1)
 				end = min(r, row - col_clues[c][i])
 				for j in xrange(start, end + 1):
 					col_st = add(col_st, 'C%d_%d_%d' % (c, i, j), '|')
-			nonogram_formula = add(nonogram_formula, ('>', 'X%d_%d' % (r, c), ('&', row_st, col_st)), '&')
+			pixel_st = add(row_st, col_st, '&')
+			if pixel_st:
+				nonogram_formula = add(nonogram_formula, ('>', 'X%d_%d' % (r, c), pixel_st), '&')
 
 	print "Step 2: Converting to cnf form..."
 	nonogram_formula = to_cnf(nonogram_formula)
