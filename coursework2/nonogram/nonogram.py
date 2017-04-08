@@ -83,7 +83,7 @@ if __name__ == '__main__':
 	for c in xrange(col):
 		col_clues.append(map(int, f_in.readline().strip().split(' ')))
 
-	print "Step 1: Making nonogram into logical formula"
+	# print "Step 1: Making nonogram into logical formula"
 	for r in range(row):
 		row_clue = row_clues[r]
 		if minlen(row_clue) == 0:
@@ -146,7 +146,7 @@ if __name__ == '__main__':
 					else:
 						and_st = add(and_st, ('-', col_chunk_literal), '&')
 				and_st = add(and_st, or_st, '&')
-				
+
 				for j in xrange(chunk_cumulative, chunk_cumulative + entropy):
 					temp_st = None
 					for k in xrange(row):
@@ -185,7 +185,7 @@ if __name__ == '__main__':
 			if pixel_st:
 				nonogram_formula = add(nonogram_formula, ('>', 'X%d_%d' % (r, c), pixel_st), '&')
 
-	print "Step 2: Converting to cnf form..."
+	# print "Step 2: Converting to cnf form..."
 	nonogram_formula = to_cnf(nonogram_formula)
 
 	with open('minisat_in', 'w') as f:
@@ -194,10 +194,13 @@ if __name__ == '__main__':
 		f.write(' 0')
 		f.close()
 
-	print "Step 3: Using minisat to solve formula..."
+	# print "Step 3: Using minisat to solve formula..."
 	os.system("minisat %s %s > /dev/null" % ('minisat_in', 'minisat_out'))
 	with open('minisat_out', 'r') as out:
 		sat = out.readline().strip()
+		if sat == "UNSAT":
+			print "Error: Unsatisfiable nonogram"
+			exit()
 		res = out.readline().strip().split(' ')
 
 	for r in range(row):
