@@ -156,10 +156,9 @@ def _to_minisat(formula, lits):
 
 if __name__ == '__main__':
 	if len(sys.argv) != 2:
-		print "Usage: python cnf.py inputfile"
+		print "Usage: python cnf.py prop_formula"
 		exit()
-	f = open(sys.argv[1], 'r')
-	formula = parse_formula(f.readline().strip())
+	formula = parse_formula(sys.argv[1].strip())
 	formula = to_cnf(formula)
 	print cnf_to_polish(formula)
 	print cnf_to_infix(formula)
@@ -167,8 +166,10 @@ if __name__ == '__main__':
 	minisat_input = "test.in"
 	minisat_output = "test.out"
 	cnf_to_minisat(formula, minisat_input)
-	result =  os.system("minisat %s %s > /dev/null" % (minisat_input, minisat_output))
+	result = os.system("minisat %s %s > /dev/null" % (minisat_input, minisat_output))
 	with open(minisat_output, 'r') as out:
 		sat = out.readline().strip()
-	print sat
-	f.close()
+	if sat == "SAT":
+		print "Valid"
+	else:
+		print "Not Valid"
