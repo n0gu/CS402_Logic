@@ -41,14 +41,12 @@ class ShimpleVerifier(object):
                         current_label_code = []
                     else:
                         current_label_code.append(k)
-        # print self.code
-        # print self.var
 
     def solve(self):
         self.solver.add(self._make_exp("start"))
         self.solver.add(self.assertion == False)
-        print self.solver.check()
-        print self.solver.model()
+        print self.solver.check() # If sat, Not Valid. Counter-example is the mode.
+        print self.solver.model() # If unsat, Valid.
 
     def _make_exp(self, label, phi=None):
         conditions = []
@@ -57,9 +55,9 @@ class ShimpleVerifier(object):
         for i in range(len(code)):
             exp = code[i]
 
-            # Phi parsing
+            # Phi parsing. Note: type(phi_num) == str
             if exp.startswith("("):
-                phi_num = int(exp[1:exp.index(")")])
+                phi_num = exp[1:exp.index(")")]
                 exp = exp[exp.index(")")+1:].strip()
 
             if "@parameter" in exp or exp == "nop":
@@ -70,9 +68,20 @@ class ShimpleVerifier(object):
                 return (self.assertion == True)
             if "$assertionsDisabled" in exp:
                 assertion_label = code[i+1].rstrip(";").split()[-1]
-                res = self._make_exp(assertion_label)
-                # TODO: "And" conditions with res. return that And-value.
+                res = self._make_exp(assertion_label, phi_num)
                 return And(self.merge(conditions), res)
+            if "Phi" in exp:
+                left = exp.split("=")[0].strip()
+                phi_options = exp.split("(")[1].rstrip(")").split(", ")
+                for o in phi_options:
+                    _o = o.split(" #")
+                    if _o[1] == phi:
+                        right = _o[0]
+                        break
+                else:
+                    print "Error: Couldn't find matching phi"
+                conditions.append(self.l_to_e([left, "=", right]))
+                continue
 
             x = exp.split()
             if (x[0] in self.var) and (x[1] == "="):
@@ -80,13 +89,27 @@ class ShimpleVerifier(object):
             if x[0] == "if":
                 then_label = x[-1]
                 if_condition = x[1:-2]
-                else_label = code[i+1].split()[1]
-                # print if_condition, then_label, else_label
-                conditions.append(Implies(self.l_to_e(if_condition), self._make_exp(then_label)))
-                conditions.append(Implies(Not(self.l_to_e(if_condition)), self._make_exp(else_label)))
+                else_exp = code[i+1]
+                else_phi = phi_num
+                if else_exp.startswith("("):
+                    else_phi = else_exp[1:else_exp.index(")")]
+                    else_exp = else_exp[else_exp.index(")")+1:].strip()
+                else_label = else_exp.split()[1]
+                conditions.append(Implies(self.l_to_e(if_condition), self._make_exp(then_label, phi_num)))
+                conditions.append(Implies(Not(self.l_to_e(if_condition)), self._make_exp(else_label, else_phi)))
                 return self.merge(conditions)
+            if x[0] == "goto":
+                goto_label = x[1]
+                res = self._make_exp(goto_label, phi_num)
+                return And(self.merge(conditions), res)
 
-        print "LOOP ENDED, BUT NOT FIN!"
+        if label == "start":
+            next_label = "label0"
+        else:
+            next_label_number = int(label[5:]) + 1
+            next_label = "label%d" % next_label_number
+        res = self._make_exp(next_label, phi_num)
+        return And(self.merge(conditions), res)
 
     def l_to_e(self, l):
         # Make a z3 expression, from a list of strings.
@@ -130,12 +153,3 @@ if __name__ == '__main__':
     except IOError:
         print "Error: .shimple file not found"
         sys.exit(-1)
-
-    '''
-    x = Int('x')
-    y = Int('y')
-    b = Bool('b')
-    s = Solver()
-    s.add(x > 2, x < 2)
-    print s.model()
-    '''
