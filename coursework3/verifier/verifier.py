@@ -155,7 +155,7 @@ if __name__ == '__main__':
         sys.exit(-1)
     java_filename = sys.argv[1]
     java_classname = java_filename.split(".java")[0]
-    if os.system("java -jar soot.jar -src-prec java -f shimple -pp -cp . {} 2>/dev/null".format(java_classname)) != 0:
+    if os.system("java -jar soot.jar -src-prec java -f shimple -pp -cp . {} 1>/dev/null 2>/dev/null".format(java_classname)) != 0:
         print "Error: Failed to run soot"
         sys.exit(-1)
 
@@ -163,5 +163,5 @@ if __name__ == '__main__':
         a = ShimpleVerifier("./sootOutput/{}.shimple".format(java_classname))
         a.solve()
     except IOError:
-        print "Error: .shimple file not found"
+        print "Error: ./sootOutput/{}.shimple not found".format(java_classname)
         sys.exit(-1)
