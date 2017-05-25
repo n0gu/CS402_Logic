@@ -13,6 +13,7 @@ class ShimpleVerifier(object):
         self.code = {}
         self.solver = Solver()
         self.assertion = Bool('A')
+        self.parameters = []
 
         with open(filename, 'r') as f:
             status = INIT
@@ -45,8 +46,16 @@ class ShimpleVerifier(object):
     def solve(self):
         self.solver.add(self._make_exp("start"))
         self.solver.add(self.assertion == False)
-        print self.solver.check() # If sat, Not Valid. Counter-example is the mode.
-        print self.solver.model() # If unsat, Valid.
+        if self.solver.check() == sat:
+            # If sat, Not Valid. Counter-example is the mode.
+            print "Not Valid"
+            print "Counter-example:"
+            m = self.solver.model()
+            for p in self.parameters:
+                print "{} = {}".format(p, m[self.var[p]])
+        else:
+            # If unsat, Valid.
+            print "Valid"
 
     def _make_exp(self, label, phi=None):
         conditions = []
@@ -60,7 +69,10 @@ class ShimpleVerifier(object):
                 phi_num = exp[1:exp.index(")")]
                 exp = exp[exp.index(")")+1:].strip()
 
-            if "@parameter" in exp or exp == "nop":
+            if exp == "nop":
+                continue
+            if "@parameter" in exp:
+                self.parameters.append(exp.split()[0])
                 continue
             if "throw" in exp:
                 return (self.assertion == False)
@@ -143,7 +155,7 @@ if __name__ == '__main__':
         sys.exit(-1)
     java_filename = sys.argv[1]
     java_classname = java_filename.split(".java")[0]
-    if os.system("java -jar soot.jar -src-prec java -f shimple -pp -cp . {}".format(java_classname)) != 0:
+    if os.system("java -jar soot.jar -src-prec java -f shimple -pp -cp . {} 2>/dev/null".format(java_classname)) != 0:
         print "Error: Failed to run soot"
         sys.exit(-1)
 
